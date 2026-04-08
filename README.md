@@ -63,18 +63,11 @@ The physical implementation features a robust internal layout with dedicated PCB
 This project was developed by a specialized team at **Sana'a University**:
 - **Mutasim Al-Kamil** ([GitHub](https://github.com/Asoomkamel))
 - **Osama Mohammed Moawad**
-- **Akram Sadeq**
-- **Mamdouh Alsamei**
-- **Muhammed Arif**
-- **Hussain Alsamei**
 
 **Supervised by:**
-- Prof. Dr. Faisal Abdulftah
-- Prof. Dr. Sami Al-Maqtari
 - Prof. Dr. Muhammed Ameen
-- Eng. Ahlam Dherwa
 - Eng. Zakaria Al-koshab
-- Eng. Amani Al-Uqahbi
+
 
 ---
 *© 2024-2025 Sana'a University - Faculty of Engineering*
