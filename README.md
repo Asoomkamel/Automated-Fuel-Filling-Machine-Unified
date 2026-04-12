@@ -4,6 +4,14 @@ A sophisticated, multi-integrated industrial automation project featuring **RFID
 
 ---
 
+<div align="center">
+  <img src="media/fuel_machine_exterior.jpg" alt="Automated Fuel Filling Machine Exterior" width="45%"/>
+  <img src="media/fuel_machine_interior.jpg" alt="Automated Fuel Filling Machine Interior" width="45%"/>
+  <p><i>Left: The physical prototype with user interface. Right: Internal circuitry and dual-microcontroller architecture.</i></p>
+</div>
+
+---
+
 ## 🌟 Integrated Features & Technologies
 This project synthesizes three major technological domains into one cohesive system:
 
