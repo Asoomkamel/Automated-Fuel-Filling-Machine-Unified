@@ -1,0 +1,165 @@
+
+int R = 5; //red
+int G = 4; // green
+int B = 3; // buzzer = 
+
+int S = 13; // smoke
+int s2=12;
+
+int F = 11; //flame 
+int f2=10;
+
+
+#define TE 2
+#define tem A0
+#define lev A3
+int L1 = 6; //
+int L2 = 7; //
+int L3 = 8; //
+
+void setup() {
+  // put your setup code here, to run once:
+      
+  pinMode(tem, INPUT);
+  pinMode(lev, INPUT);
+  pinMode(F, INPUT);
+  pinMode(S, INPUT);
+    pinMode(f2, INPUT);
+  pinMode(s2, INPUT);
+  pinMode(R, OUTPUT);
+  pinMode(G, OUTPUT);
+  pinMode(B, OUTPUT);
+   pinMode(TE, OUTPUT);
+
+  pinMode(L1, OUTPUT);
+  pinMode(L2, OUTPUT);
+  pinMode(L3, OUTPUT);
+
+  Serial.begin(9600);
+}
+void loop() {
+  // put your main code here, to run repeatedly:
+
+
+ int FR = digitalRead(F);
+ int FR2 = digitalRead(f2);
+  int SR = digitalRead(S);
+  int SR2 = digitalRead(s2);
+int value1 = analogRead(lev);
+
+int x = analogRead(tem);
+          float temp = (5.0*x*100.0)/1024.0;
+          Serial.print("temp DET : "); 
+           Serial.println (temp);
+if (temp>=70){
+  TempOn();
+}
+else{
+
+   TempOff();
+}
+delay(100);
+
+
+//
+
+
+//
+
+
+
+if (SR ==HIGH || SR2==HIGH)
+  {
+
+
+  Serial.print ("Smoke detected: ");  Serial.println (SR);
+  Serial.print ("Smoke detected2: ");  Serial.println (SR2);
+  //Serial.println (SR);
+  
+    digitalWrite (G, HIGH);
+   digitalWrite (B, HIGH);
+    tone (B, 1000, 200);
+
+  }
+  else
+  {
+
+    
+
+    Serial.println (" no smoke");  
+    digitalWrite (G, LOW );
+   digitalWrite (B, LOW);
+
+  }
+  //
+ if ( FR==HIGH || FR2==HIGH )
+  {
+   Serial.print (" fire detected : ");  Serial.println (FR);
+   Serial.print (" fire detected2 : ");  Serial.println (FR2);
+    digitalWrite (R, HIGH);
+       digitalWrite (B, HIGH);
+       
+    tone (B, 1000, 200);
+
+  }
+  else
+  {
+    Serial.println (" no fire");
+     Serial.println ("");
+    digitalWrite (R, LOW );
+   digitalWrite (B, LOW);
+    noTone (B);
+
+  }
+  //
+
+  
+int value =map(value1,0,1023,0,180);
+
+  if (value1 <= 150) {
+
+       Serial.print ("tank is empty: ");  Serial.println (value1);
+    digitalWrite (L3, HIGH);
+     digitalWrite (L2, LOW);
+      digitalWrite (L1, LOW);
+
+  }
+  else if (value1 > 500 && value1 < 700) 
+  {
+
+       Serial.print("tank is norm : ");  Serial.println (value1);
+  
+     digitalWrite (L3, LOW);
+     digitalWrite (L2, HIGH);
+      digitalWrite (L1, LOW);
+
+  }
+   else {
+       Serial.print(" tank is upnorma :");  Serial.println (value1);
+   digitalWrite (L3, LOW);
+     digitalWrite (L2, LOW);
+      digitalWrite (L1, HIGH);
+
+
+  }
+
+
+
+}
+
+
+      void TempOn()
+    {  
+          
+          digitalWrite(TE, HIGH);
+          delay(100);
+    }
+    
+    void TempOff()
+    {
+      digitalWrite(TE, LOW);
+    }
+
+
+
+

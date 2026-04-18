@@ -1,0 +1,168 @@
+
+#include "MQ135.h"
+// Sensors full work
+//gas
+const int SensorPin = 32;
+const int LEDPin = 19;
+
+const int SensorPin1 = 33;
+const int interrupt = 15;
+//const int LEDPin1 = 21;
+    int gas_sensorThres = 3000;
+//flame
+         const int fr = 34;
+       const int fr1 = 35;
+
+    int redLed22 = 13;
+   // int redLed=12;
+    int buzzer = 14;
+   
+    
+   
+
+const int FLOATING = 27;
+const int RLEDPin  = 26;
+//const int YLEDPin  = 25;
+const int Y2LEDPin = 23;
+const int FLOAT_SENSOR=22;
+   
+void setup() {
+
+  //1/smoke
+pinMode(SensorPin, INPUT); // 
+  pinMode(LEDPin, OUTPUT); // 
+  pinMode(SensorPin1, INPUT); //
+//  pinMode(LEDPin1, OUTPUT); // 
+  ///2/flame
+   //pinMode(redLed, OUTPUT);
+    pinMode(redLed22, OUTPUT);
+    pinMode(buzzer, OUTPUT);
+    pinMode(fr, INPUT);
+     pinMode(fr1, INPUT);
+    ///3/
+
+     pinMode(FLOAT_SENSOR, INPUT_PULLUP); //
+  pinMode(RLEDPin, OUTPUT); // 
+
+  pinMode(Y2LEDPin, OUTPUT); //
+    //
+  pinMode(FLOATING, INPUT);
+    Serial.begin(115200);
+    //init
+  pinMode(interrupt, OUTPUT); 
+     digitalWrite(LEDPin,LOW);
+       digitalWrite(redLed22,LOW);
+}
+
+void loop() {
+ float rightsensor= analogRead(SensorPin);
+     float leftsensor= analogRead(SensorPin1);
+     int rightsensor1 =rightsensor * (100.0 / 4095);
+ int  leftsensor1 = leftsensor * (100.0 / 4095);
+
+     Serial.print("Smoke1: "); Serial.println(rightsensor); Serial.print("      ");
+          Serial.print("Smoke2: "); Serial.println(leftsensor);  Serial.print("      ");
+  //gas();
+    gas(leftsensor,LEDPin);
+ 
+  delay(300);
+  gas(rightsensor,LEDPin);
+ // flame();
+int fright  = analogRead(fr);
+	int fleft  = analogRead(fr1);
+
+
+  int fright1 = (1 - fright / 4095.0) * 100;
+
+  int fleft1 = (1 - fleft / 4095.0) * 100;
+
+
+Serial.print("Fire_1: "); Serial.println(fright); Serial.print("      ");
+          Serial.print("Fire_1: "); Serial.println(fleft); Serial.print("      ");
+ flame(fright ,redLed22);
+  delay(400);
+  flame(fleft ,redLed22);
+
+ 
+ //    digitalWrite(RLEDPin, LOW);
+  //   digitalWrite(Y2LEDPin, LOW);
+ 
+
+ if(digitalRead(FLOAT_SENSOR) == LOW) 
+  {
+    // turn LED on:
+    digitalWrite(Y2LEDPin, LOW);
+     alarmclose();
+  } 
+  else 
+  {
+    // turn LED off:
+    digitalWrite(Y2LEDPin, HIGH);
+    alarm();
+     //  waterLevelPercent = 30;
+  }
+  
+
+ 
+
+}
+
+
+void gas(float x1 , int y1)  // gas(SensorPin,LEDPin)
+{
+  //x1 =0;
+if (x1 >=2700 &&x1 !=4095){
+ 
+    digitalWrite(y1,HIGH);
+      alarm();
+   // delay(70);
+  }
+  else
+  {
+    digitalWrite(y1,LOW);
+     alarmclose();
+    
+  }
+  
+}
+
+void flame(int x ,int y) { /// x=pin y = led 
+  //float analogSensor= 
+   
+    if (x<3000&&x!=4095){
+   
+    
+    digitalWrite(y, HIGH);
+  alarm();
+    //tone(buzzer, 1000, 200);
+    }
+  
+    else 
+    {
+    digitalWrite(y, LOW);
+  
+    alarmclose();
+    }
+   // delay(100);
+    }
+
+     
+
+    void alarm(){
+        digitalWrite(buzzer, HIGH);
+   digitalWrite(interrupt ,HIGH);
+      tone(buzzer, 1000, 200);
+    }
+    void alarmclose(){
+        digitalWrite(buzzer, LOW);
+   digitalWrite(interrupt ,LOW);
+     noTone(buzzer);
+    }
+
+
+
+
+
+
+
+

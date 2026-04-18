@@ -1,0 +1,268 @@
+#define REMOTEXY_MODE__ESP8266_HARDSERIAL_POINT
+
+#define REMOTEXY_SERIAL Serial
+#define REMOTEXY_SERIAL_SPEED 9600
+#define REMOTEXY_WIFI_SSID "Fuel_Sponser"
+#define REMOTEXY_WIFI_PASSWORD "123456789"
+#define REMOTEXY_SERVER_PORT 6377
+#define REMOTEXY_ACCESS_PASSWORD "123456789"
+
+#include <RemoteXY.h>
+
+#pragma pack(push, 1)  
+uint8_t RemoteXY_CONF[] = { 
+  255,5,0,4,0,78,0,19,0,0,0,87,105,102,105,109,111,100,117,108,
+  101,0,0,1,106,200,1,1,3,0,67,27,57,48,10,78,2,26,2,7,
+  28,34,47,14,110,64,2,26,2,2,12,24,15,51,12,193,30,26,111,112,
+  116,105,111,110,32,48,0,111,112,116,105,111,110,32,49,0,111,112,116,105,
+  111,110,32,50,0 
+};  
+  
+struct {
+  float edit_01;                  // Text input (price or liters)
+  uint8_t optionSelector_01;      // Choice selector (0: Price, 1: Liters)
+  float value_01;                 // Variable monitor (e.g., total)
+  uint8_t connect_flag;           // Connection flag
+} RemoteXY;   
+#pragma pack(pop)
+
+/////////////////////////////////////////////
+//           END RemoteXY include          //
+/////////////////////////////////////////////
+#include <Keypad.h>
+#include <LiquidCrystal_I2C.h>
+#include <Wire.h>
+//اخر تعديل 
+const int ROW_NUM = 4;
+const int COLUMN_NUM = 4;
+LiquidCrystal_I2C lcd(0x27, 16, 2); // عنوان الشاشة 0x27
+
+int price;
+int power = 10;
+char keys[ROW_NUM][COLUMN_NUM] = { 
+  { '1', '2', '3', 'A' },
+  { '4', '5', '6', 'B' },
+  { '7', '8', '9', 'C' },
+  { '*', '0', '#', 'D' }
+};
+byte pin_rows[ROW_NUM] = { 6, 7, 8, 9 };
+byte pin_column[COLUMN_NUM] = { 10, 3, 4, 5 };
+
+Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
+
+int sensorInterrupt = 0;
+int sensorPin = 2;
+int solenoidValve = 7;
+unsigned int SetPoint = 400;
+String code = "";
+float calibrationFactor = 80; // تعديل معامل المعايرة لمستشعر YF-S401
+volatile byte pulseCount = 0;
+float flowRate = 0.0;
+unsigned int flowMilliLitres = 0;
+unsigned long totalMilliLitres = 0;
+float volume = 0.0;  // تعديل: حساب الكمية كعدد عشري
+unsigned long oldTime;
+
+const int pump_motor = 12;
+int pump_motor1 = LOW;
+bool mode = false; // false = price mode, true = liters mode
+
+// متغيرات لحفظ الإجماليات
+float totalLiters = 0.0;
+int totalPrice = 0;
+
+void setup() {
+ RemoteXY_Init (); 
+  Serial.begin(9600);
+  lcd.init();
+  lcd.backlight();
+  pinMode(pump_motor, OUTPUT);
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  lcd.print("Set A: Price ");
+  lcd.setCursor(0, 1);
+  lcd.print("Set B: Liters ");
+
+  pinMode(solenoidValve, OUTPUT);
+  digitalWrite(solenoidValve, HIGH);
+  pinMode(sensorPin, INPUT);
+  pinMode(power, INPUT);
+  digitalWrite(sensorPin, HIGH);
+  digitalWrite(pump_motor, LOW);
+  attachInterrupt(sensorInterrupt, pulseCounter, FALLING);
+}
+
+void loop() {
+
+ RemoteXY_Handler();
+    char key = keypad.getKey();
+  // Handle input based on selected option
+  switch (RemoteXY.optionSelector_01) {
+    case 0: // Price input
+  code +== RemoteXY.edit_01;
+   handlePriceInput();
+   
+      break;
+    case 1: // Liters input
+  code += RemoteXY.edit_01;
+  handleLitersInput();
+      break;
+  }
+         RemoteXY.value_01 =totalPrice; 
+
+  if (key) {
+    if (key == '*') {
+      resetDisplay(); // إعادة التعيين عند الضغط على *
+      return;
+    }
+
+    if (key == 'C') {
+      displayTotals(); // عرض الإجمالي عند الضغط على C
+      return;
+    }
+
+    if (!mode && key == 'A') {
+      resetDisplay(); // إعادة التعيين عند التبديل بين الأوضاع
+      mode = false;
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Set price:");
+    }
+ else if (!mode && key == 'B') {
+      resetDisplay(); // إعادة التعيين عند التبديل بين الأوضاع
+      mode = true;
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Set liters:");
+    } else if (key == 'D') {
+      if (code.length() > 0) {
+        code.remove(code.length() - 1); // إزالة آخر حرف
+      }
+    } else if (key != '#') {
+      code += key;
+    }
+    lcd.setCursor(0, 1);
+    lcd.print("                "); // مسح السطر
+    lcd.setCursor(0, 1);
+    lcd.print(code);
+    delay(100);
+  }
+
+  if (key == '#') {
+    if (!mode) {
+      handlePriceInput();
+    } else {
+      handleLitersInput();
+    }
+    code = "";
+  }
+}
+
+void handlePriceInput() {
+  if (code.toInt() > 0) { // التحقق من أن السعر أكبر من 0
+    price = code.toInt();
+    volume = (float)price / 500.0; // حساب الكمية بالليترات بناءً على السعر المدخل
+    startPumping();
+  } else {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Invalid price!"); // تنبيه المستخدم بخطأ في السعر
+  }
+}
+
+void handleLitersInput() {
+  if (code.toFloat() > 0) { // التحقق من أن القيمة أكبر من 0
+    volume = code.toFloat();
+    price = volume * 500;
+    startPumping();
+  } else {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Invalid liters!"); // تنبيه المستخدم بخطأ في الليترات
+  }
+}
+
+void startPumping() {
+  totalMilliLitres = 0;
+  oldTime = millis();
+  digitalWrite(pump_motor, HIGH);
+  while (totalMilliLitres < (volume * 1000)) { // هنا نتحقق من الوصول إلى الكمية المطلوبة بالمللي لتر
+    if ((millis() - oldTime) > 1000) {
+      measureFlowRate();
+    }
+  }
+  digitalWrite(pump_motor, LOW);
+  updateTotals(); // تحديث الإجماليات بعد الانتهاء من الضخ
+  displayFinalReadings();
+}
+
+void measureFlowRate() {
+  detachInterrupt(sensorInterrupt);
+  flowRate = ((1000.0 / (millis() - oldTime)) * pulseCount) / calibrationFactor;
+  oldTime = millis();
+  flowMilliLitres = (flowRate / 60) * 1000;
+  totalMilliLitres += flowMilliLitres;
+  float currentLiters = totalMilliLitres / 1000.0;
+  float currentPrice = currentLiters * 500;
+  displayCurrentReadings(currentLiters, currentPrice);
+  pulseCount = 0;
+  attachInterrupt(sensorInterrupt, pulseCounter, FALLING);
+}
+
+void displayCurrentReadings(float liters, float price) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Liters: ");
+  lcd.print(liters, 2); // عرض الليترات بدقتين عشريتين
+  lcd.setCursor(0, 1);
+  lcd.print("Price: ");
+  lcd.print(price, 2); // عرض السعر بدقتين عشريتين
+  lcd.print(" RY");
+}
+
+void pulseCounter() {
+  pulseCount++;
+}
+
+void resetDisplay() {
+  totalMilliLitres = 0;
+  price = 0;
+  volume = 0;
+  code = "";
+  mode = false;
+  pulseCount = 0;
+  flowRate = 0.0;
+  flowMilliLitres = 0;
+  oldTime = 0;
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Set A: Price");
+  lcd.setCursor(0, 1);
+  lcd.print("Set B: Liters");
+}
+
+void displayFinalReadings() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Liters: ");
+  lcd.print(totalMilliLitres / 1000.0, 2);
+  lcd.setCursor(0, 1);
+  lcd.print("Price: ");
+  lcd.print(price);
+  lcd.print(" RY");
+}
+
+void updateTotals() {
+  totalLiters += totalMilliLitres / 1000.0; // تحديث إجمالي الليترات
+  totalPrice += price; // تحديث إجمالي السعر
+}
+
+void displayTotals() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("T_Litter: ");
+  lcd.print(totalLiters, 2);
+  lcd.setCursor(0, 1);
+  lcd.print("T_Price: ");
+  lcd.print(totalPrice);
+}
