@@ -72,10 +72,7 @@ This project was developed by a specialized team at **Sana'a University**:
 - **Mutasim Al-Kamil** ([GitHub](https://github.com/Asoomkamel))
 - **Osama Mohammed Moawad**
 
-**Supervised by:**
-- Prof. Dr. Muhammed Ameen
-- Eng. Zakaria Al-koshab
-
+**
 
 ---
 *© 2024-2025 Sana'a University - Faculty of Engineering*
